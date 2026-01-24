@@ -47,20 +47,19 @@ struct GrowingTextView: UIViewRepresentable {
         let textWidth = width - uiView.textContainerInset.left - uiView.textContainerInset.right
         let textHeight = uiView.calculateTextHeight(for: textWidth)
         let maxHeight = uiView.calculateMaxHeight()
-        let totalHeight = textHeight + uiView.textContainerInset.top + uiView.textContainerInset.bottom
-        let clampedHeight = min(totalHeight, maxHeight)
-        uiView.updateScrollEnabled(totalHeight: totalHeight, maxHeight: maxHeight)
+        let clampedHeight = min(textHeight, maxHeight)
 
         return CGSize(width: width, height: clampedHeight)
     }
 
     // MARK: - Internal TextView
 
-    class InternalTextView: UITextView {
-        var maxLineCount: Int = 3
+    final class InternalTextView: UITextView {
+        
+        var maxLineCount: Int = .zero
 
         func calculateSingleLineHeight() -> CGFloat {
-            guard let font = font else { return 20 }
+            guard let font = font else { return .zero }
 
             let singleLineText = NSAttributedString(
                 string: "A",
@@ -101,28 +100,26 @@ struct GrowingTextView: UIViewRepresentable {
                 context: nil
             )
 
-            return ceil(boundingRect.height)
-        }
-        
-        func updateScrollEnabled(totalHeight: CGFloat, maxHeight: CGFloat) {
-            let shouldScroll = totalHeight > maxHeight
-
-            isScrollEnabled = shouldScroll
-            invalidateIntrinsicContentSize()
+            return ceil(boundingRect.height) + textContainerInset.top + textContainerInset.bottom
         }
 
-        override var intrinsicContentSize: CGSize {
+        func updateScrollAndScrollToCaret() {
             let textWidth = bounds.width - textContainerInset.left - textContainerInset.right
-            guard textWidth > 0 else {
-                return CGSize(width: UIView.noIntrinsicMetric, height: calculateMaxHeight())
-            }
+            guard textWidth > 0 else { return }
 
             let textHeight = calculateTextHeight(for: textWidth)
             let maxHeight = calculateMaxHeight()
-            let totalHeight = textHeight + textContainerInset.top + textContainerInset.bottom
-            let clampedHeight = min(totalHeight, maxHeight)
 
-            return CGSize(width: UIView.noIntrinsicMetric, height: clampedHeight)
+            // 先にスクロールを有効化
+            let shouldScroll = textHeight > maxHeight
+            isScrollEnabled = shouldScroll
+            invalidateIntrinsicContentSize()
+
+            // その後にカーソル位置へスクロール
+            if shouldScroll, let selectedRange = selectedTextRange {
+                let caretRect = caretRect(for: selectedRange.end)
+                scrollRectToVisible(caretRect, animated: false)
+            }
         }
     }
 
@@ -130,15 +127,17 @@ struct GrowingTextView: UIViewRepresentable {
 
     class Coordinator: NSObject, UITextViewDelegate {
         @Binding var text: String
-        private weak var placeholderLabel: UILabel?
 
         init(text: Binding<String>) {
             self._text = text
         }
         
         func textViewDidChange(_ textView: UITextView) {
-            Task {
-                text = textView.text
+            text = textView.text
+
+            // スクロール有効化とカーソル位置へのスクロールを実行
+            if let internalTextView = textView as? InternalTextView {
+                internalTextView.updateScrollAndScrollToCaret()
             }
         }
     }
