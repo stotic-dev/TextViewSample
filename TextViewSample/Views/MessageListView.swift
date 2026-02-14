@@ -37,9 +37,10 @@ struct MessageListView: View {
             }
             .onChange(of: isShowingKeyboard) {
                 guard isShowingKeyboard else { return }
+                let wasNearBottom = isNearBottom
                 Task {
                     try await Task.sleep(for: .milliseconds(100))
-                    if isNearBottom {
+                    if wasNearBottom {
                         scrollToLastMessage(using: proxy)
                     }
                 }
