@@ -7,6 +7,8 @@ import SwiftUI
 
 struct MessageInputView: View {
     @State private var text = ""
+    
+    @Binding var isShowingKeyboard: Bool
     let onSend: (_ message: String) -> Void
 
     private var canSend: Bool {
@@ -20,7 +22,7 @@ struct MessageInputView: View {
                     Text("Message")
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                GrowingTextView(text: $text, maxLineCount: 3)
+                GrowingTextView(text: $text, isShowingKeyboard: $isShowingKeyboard, maxLineCount: 3)
             }
             .padding(8)
             .background {
@@ -45,7 +47,7 @@ struct MessageInputView: View {
 }
 
 #Preview {
-    MessageInputView {
+    MessageInputView(isShowingKeyboard: .constant(false)) {
         print("Send: \($0)")
     }
 }

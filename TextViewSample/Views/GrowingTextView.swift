@@ -8,10 +8,12 @@ import UIKit
 
 struct GrowingTextView: UIViewRepresentable {
     @Binding var text: String
+    @Binding var isShowingKeyboard: Bool
     let maxLineCount: Int
 
-    init(text: Binding<String>, maxLineCount: Int = 3) {
+    init(text: Binding<String>, isShowingKeyboard: Binding<Bool>, maxLineCount: Int = 3) {
         self._text = text
+        self._isShowingKeyboard = isShowingKeyboard
         self.maxLineCount = maxLineCount
     }
 
@@ -38,7 +40,7 @@ struct GrowingTextView: UIViewRepresentable {
     }
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(text: $text)
+        Coordinator(text: $text, isShowingKeyboard: $isShowingKeyboard)
     }
 
     func sizeThatFits(_ proposal: ProposedViewSize, uiView: InternalTextView, context: Context) -> CGSize? {
@@ -127,9 +129,11 @@ struct GrowingTextView: UIViewRepresentable {
 
     class Coordinator: NSObject, UITextViewDelegate {
         @Binding var text: String
+        @Binding var isShowingKeyboard: Bool
 
-        init(text: Binding<String>) {
+        init(text: Binding<String>, isShowingKeyboard: Binding<Bool>) {
             self._text = text
+            self._isShowingKeyboard = isShowingKeyboard
         }
         
         func textViewDidChange(_ textView: UITextView) {
@@ -140,14 +144,23 @@ struct GrowingTextView: UIViewRepresentable {
                 internalTextView.updateScrollAndScrollToCaret()
             }
         }
+        
+        func textViewDidEndEditing(_ textView: UITextView) {
+            isShowingKeyboard = false
+        }
+        
+        func textViewDidBeginEditing(_ textView: UITextView) {
+            isShowingKeyboard = true
+        }
     }
 }
 
 #Preview {
     @Previewable @State var text = ""
+    @Previewable @State var isShowingKeyboard = false
     VStack {
         Spacer()
-        GrowingTextView(text: $text, maxLineCount: 3)
+        GrowingTextView(text: $text, isShowingKeyboard: $isShowingKeyboard, maxLineCount: 3)
             .padding(.horizontal, 4)
             .background(Color(.systemGray6))
             .clipShape(RoundedRectangle(cornerRadius: 18))
