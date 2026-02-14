@@ -9,12 +9,13 @@ struct ChatView: View {
     @Environment(\.chatRepository) private var chatRepository
     @State private var messages: [Message] = []
     @State private var isLoading = false
+    @State private var isShowingKeyboard = false
 
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                MessageListView(messages: messages)
-                MessageInputView(onSend: sendMessage)
+                MessageListView(messages: messages, isShowingKeyboard: $isShowingKeyboard)
+                MessageInputView(isShowingKeyboard: $isShowingKeyboard, onSend: sendMessage)
             }
             .navigationTitle("Chat")
             .toolbar {
